@@ -20,6 +20,8 @@
 #ifndef FLB_OUT_OBS
 #define FLB_OUT_OBS
 
+#include <string.h>
+
 struct flb_out_obs_config {
     char *ak;
     // char *sk;
@@ -27,19 +29,18 @@ struct flb_out_obs_config {
     // char *bucketName
 };
 
-static char* get_log_path_by_timestamp(char *origin_path, uint32_t timestamp)
+static void get_log_path_by_timestamp(char *dest_path, char *origin_path, long long timestamp)
 {
     flb_info("%s", origin_path);
     flb_info("%d", timestamp);
 
-    struct tm *ptm = localtime(&timestamp);
-    char *buf = (char *)malloc(sizeof(char) * 20);
+    struct tm *ptm = localtime((time_t *)&timestamp);
 
-    strftime(buf, 20, "%F_%H:%M:%S", ptm);
-    
-    flb_info("timestamp is %d, buf is %s", timestamp, buf);
-
-    return buf;
+    strcpy(dest_path, origin_path);
+    strcpy(dest_path + strlen(origin_path), ".");
+    strftime(dest_path + strlen(origin_path) + 1, 15, "%Y%m%d%H0000", ptm);
+     
+    flb_info("timestamp is %d, dest_path is %s", timestamp, dest_path);
 }
 
 #endif

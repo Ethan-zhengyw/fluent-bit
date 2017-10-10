@@ -87,8 +87,30 @@ void cb_obs_flush(void *data, size_t bytes,
         msgpack_object_print(stdout, *p);
         printf("]\n");
 
-        get_log_path_by_timestamp(i_path, tmp.tm.tv_sec);
+        // i_path: /var/log/xxx.log
+        // dest_path /var/log/xxx.log.20171010020000
+        char *dest_path = (char *)malloc(sizeof(char) * (strlen(i_path) + 16));
+        get_log_path_by_timestamp(dest_path, i_path, tmp.tm.tv_sec);
+	flb_debug("[OUT_OBS] dest_path is: %s", dest_path);
+
+        FILE *fp = fopen(dest_path, "a+");
+        if (fp == NULL) {
+            flb_errno();
+            FLB_OUTPUT_RETURN(FLB_ERROR);
+        }
+
+        fprintf(fp, "[%zd] %s: [", cnt - 1, tag);
+        fprintf(fp, "%"PRIu32".%09lu, ", (uint32_t)tmp.tm.tv_sec, tmp.tm.tv_nsec);
+        msgpack_object_print(fp, *p);
+        fprintf(fp, "]\n");
+        fclose(fp);
+        free(dest_path);
     }
+    
+    // TODO
+    // Upload "ready log file" to OBS
+    // 
+
     flb_debug("[OUT_OBS] tmp.tm.tv_sec: %d", tmp.tm.tv_sec);
     msgpack_unpacked_destroy(&result);
 
