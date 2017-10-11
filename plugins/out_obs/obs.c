@@ -23,6 +23,7 @@
 #include <fluent-bit/flb_utils.h>
 #include <fluent-bit/flb_time.h>
 #include <msgpack.h>
+#include <libgen.h>
 
 #include "obs.h"
 
@@ -53,6 +54,15 @@ int cb_obs_init(struct flb_output_instance *ins, struct flb_config *config,
         return -1;
     }
 
+    // load cache path
+    tmp = flb_output_get_property("cachepath", ins);
+    if (tmp) {
+        ctx->cachepath = tmp;
+    } else { 
+        flb_free(ctx);
+        return -1;
+    }
+
     flb_output_set_context(ins, ctx);
 
     flb_debug("[OUT_OBS] cb_obs_init end.");
@@ -74,6 +84,7 @@ void cb_obs_flush(void *data, size_t bytes,
     // (void) out_context;
     (void) config;
     struct flb_time tmp;
+    struct flb_out_obs_config *ctx = out_context;
     msgpack_object *p;
 
     char *i_path = flb_input_get_property("path", i_ins);
@@ -89,8 +100,9 @@ void cb_obs_flush(void *data, size_t bytes,
 
         // i_path: /var/log/xxx.log
         // dest_path /var/log/xxx.log.20171010020000
-        char *dest_path = (char *)malloc(sizeof(char) * (strlen(i_path) + 16));
-        get_log_path_by_timestamp(dest_path, i_path, tmp.tm.tv_sec);
+        char *bname = basename(strdup(i_path));
+        char *dest_path = (char *)malloc(sizeof(char) * (strlen(ctx->cachepath) + strlen(bname) + 16));
+        get_log_path_by_timestamp(dest_path, ctx->cachepath, bname, tmp.tm.tv_sec);
 	flb_debug("[OUT_OBS] dest_path is: %s", dest_path);
 
         FILE *fp = fopen(dest_path, "a+");
@@ -114,7 +126,6 @@ void cb_obs_flush(void *data, size_t bytes,
     flb_debug("[OUT_OBS] tmp.tm.tv_sec: %d", tmp.tm.tv_sec);
     msgpack_unpacked_destroy(&result);
 
-    struct flb_out_obs_config *ctx = out_context;
     flb_debug("[OUT_OBS] ak is: %s", ctx->ak);
     flb_debug("[OUT_OBS] data is: %s", data);
     flb_debug("[OUT_OBS] bytes is: %d", bytes);
@@ -143,6 +154,7 @@ int cb_obs_exit(void *data, struct flb_config *config)
     // }
 
     flb_free(ctx->ak);
+    flb_free(ctx->cachepath);
     // flb_free(ctx->sk);
     // flb_free(ctx->endPoint);
     // flb_free(ctx->bucketName);

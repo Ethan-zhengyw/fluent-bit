@@ -24,21 +24,34 @@
 
 struct flb_out_obs_config {
     char *ak;
+    char *cachepath;
     // char *sk;
     // char *endPoint;
     // char *bucketName
 };
 
-static void get_log_path_by_timestamp(char *dest_path, char *origin_path, long long timestamp)
+
+/*
+ * e.g. 
+ * cache_path = /tmp/cache
+ * log_file = xxx.log
+ * timestamp = 1491234123 (Mon Apr  3 11:42:03 EDT 2017)
+ * 
+ * dest_path = /tmp/cache/xxx.log.20170403110000 
+ */
+static void get_log_path_by_timestamp(char *dest_path, char *cache_path, char *log_file, long long timestamp)
 {
-    flb_info("%s", origin_path);
+    flb_info("%s", cache_path);
+    flb_info("%s", log_file);
     flb_info("%d", timestamp);
 
     struct tm *ptm = localtime((time_t *)&timestamp);
 
-    strcpy(dest_path, origin_path);
-    strcpy(dest_path + strlen(origin_path), ".");
-    strftime(dest_path + strlen(origin_path) + 1, 15, "%Y%m%d%H0000", ptm);
+    strcpy(dest_path, cache_path);
+    strcpy(dest_path + strlen(cache_path), "/");
+    strcpy(dest_path + strlen(cache_path) + 1, log_file);
+    strcpy(dest_path + strlen(cache_path) + 1 + strlen(log_file), ".");
+    strftime(dest_path + strlen(cache_path) + 1 + strlen(log_file) + 1, 15, "%Y%m%d%H0000", ptm);
      
     flb_info("timestamp is %d, dest_path is %s", timestamp, dest_path);
 }
